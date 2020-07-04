@@ -163,7 +163,7 @@ end
 
 function CreateCriminalCar(location)
 	local playerCoords = GetEntityCoords(PlayerPedId())
-	local bool, spawnLocation, heading = GetNthClosestVehicleNodeWithHeading(playerCoords.x, playerCoords.y, playerCoords.z, 60, 9, 3.0, 2.5)
+	local bool, spawnLocation, heading = GetNthClosestVehicleNodeWithHeading(playerCoords.x, playerCoords.y, playerCoords.z, 200, 9, 3.0, 2.5)
 	crimeSceneLocation = vector3(spawnLocation.x, spawnLocation.y, spawnLocation.z)
 
 	local vehicles = {"emperor", "schafter", "asea", "asetrope", "cognoscenti", "cog55", "fugitive", "glendale", "ingot", "intruder", "premier", "primo", "regina", "stanier", "stratum", "surge", "warrener", "washington", "baller", "baller2", "cavalcade", "cavalcade2", "dubsta", "fq2", "granger", "gresley", "habanero", "huntley", "landstalker", "mesa", "patriot", "radius", "rocoto", "seminole", "serrano", "felon", "jackal", "oracle", "oracle2", "sultan"}
@@ -265,6 +265,7 @@ function StartMission()
 		DrawMissionStartText(crimeSceneLocation)
 		timer = 60
 		StartTimer()
+		CreateTimerBars()
 
 		while true do
 			Citizen.Wait(0)
@@ -330,4 +331,31 @@ function StartTimer()
 			end
 		end
 	end)
+end
+
+function CreateTimerBars()
+	local _timerBarPool = NativeUI.TimerBarPool()
+
+	local timerItem = NativeUI.CreateTimerBar("TIME LEFT")
+	timerItem:SetTextColor(255, 255, 255, 255)
+	--Item:SetTextTimerBarColor(0, 255, 255, 255) --You can define a text color
+	_timerBarPool:Add(timerItem)
+
+	Citizen.CreateThread(function()
+		while isOnMission and timer > 0 do
+			Citizen.Wait(1)
+			if timer <= 5 then
+				timerItem:SetTextColor(255, 0, 0, 255)
+				timerItem:SetTextTimerBarColor(255, 0, 0, 255)
+			end
+			timerItem:SetTextTimerBar(FormatTime())
+			_timerBarPool:Draw()
+		end
+	end)
+end
+
+function FormatTime()
+	local minutes = math.floor(math.fmod(timer,3600)/60)
+	local seconds = math.floor(math.fmod(timer,60))
+	return string.format("%02d:%02d",minutes,seconds)
 end
