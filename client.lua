@@ -14,6 +14,7 @@ Citizen.CreateThread(function()
 			-- The player is in a cop car and is standing still
 			if IsPedInAnyPoliceVehicle(PlayerPedId()) and GetVehicleClass(veh) == 18 and GetEntitySpeed(veh) == 0 and not isOnMission then
 				SetHornEnabled(veh, false)
+				-- Disable headlight and horn controls (E and right d-pad)
 				DisableControlAction(0, 74, true)
 				DisableControlAction(0, 86, true)
 				if GetPlayerWantedLevel(PlayerId()) == 0 then
@@ -263,6 +264,7 @@ function StartMission()
 		StartMissionStolenCar()
 		SetTargetRoute()
 		SetMaxWantedLevel(0)
+		SetVehicleSiren(GetVehiclePedIsIn(PlayerPedId(), false), true)
 		DisplayShardMessage()
 		DrawMissionStartText(crimeSceneLocation)
 		timer = 60
@@ -302,7 +304,6 @@ function StartMission()
 end
 
 function StartMissionStolenCar()
-	PlayPoliceReport("SCRIPTED_SCANNER_REPORT_CAR_STEAL_4_01", 0.0)
 	local vehicle = CreateCriminalCar()
 	target = vehicle
 	-- Create random number of criminals
@@ -360,4 +361,8 @@ function FormatTime()
 	local minutes = math.floor(math.fmod(timer,3600)/60)
 	local seconds = math.floor(math.fmod(timer,60))
 	return string.format("%02d:%02d",minutes,seconds)
+end
+
+function PlayPoliceRadio()
+	PlayPoliceReport("SCRIPTED_SCANNER_REPORT_CAR_STEAL_2_01", 0.0)
 end
