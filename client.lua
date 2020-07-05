@@ -14,9 +14,11 @@ Citizen.CreateThread(function()
 			-- The player is in a cop car and is standing still
 			if IsPedInAnyPoliceVehicle(PlayerPedId()) and GetVehicleClass(veh) == 18 and GetEntitySpeed(veh) == 0 and not isOnMission then
 				SetHornEnabled(veh, false)
+				DisableControlAction(0, 74, true)
+				DisableControlAction(0, 86, true)
 				if GetPlayerWantedLevel(PlayerId()) == 0 then
 					SetTextComponentFormat("STRING")
-					AddTextComponentString("Press ~INPUT_PICKUP~ when stopped to start vigilante missions.")
+					AddTextComponentString("Press ~INPUT_CONTEXT~ when stopped to start vigilante missions.")
 					DisplayHelpTextFromStringLabel(0, 0, 1, -1)
 				else
 					SetTextComponentFormat("STRING")
@@ -24,7 +26,7 @@ Citizen.CreateThread(function()
 					DisplayHelpTextFromStringLabel(0, 0, 1, -1)
 				end
 
-				if IsControlJustReleased(13, 38) and not isOnMission then
+				if IsControlJustReleased(13, 51) and GetPlayerWantedLevel(PlayerId()) == 0 and not isOnMission then
 					isOnMission = true
 					StartMission()
 				end
