@@ -15,7 +15,7 @@ Citizen.CreateThread(function()
 			if IsPedInAnyPoliceVehicle(PlayerPedId()) and GetVehicleClass(veh) == 18 and GetEntitySpeed(veh) == 0 and not isOnMission then
 				SetHornEnabled(veh, false)
 				-- Disable headlight and horn controls (E and right d-pad)
-				DisableControlAction(0, 74, true)
+				DisableControlAction(8, 74, true)
 				DisableControlAction(0, 86, true)
 				if GetPlayerWantedLevel(PlayerId()) == 0 then
 					SetTextComponentFormat("STRING")
@@ -167,6 +167,10 @@ function CreateCriminalInCar(vehicle, seat)
 	local blip = AddBlipForEntity(criminal)
 	SetBlipAsFriendly(blip, false)
 
+	AddEntityIcon(criminal, "MP_Arrow")
+	SetEntityIconColor(criminal, 255, 0, 0, 190)
+	SetEntityIconVisibility(criminal, true)
+
 	return criminal
 end
 
@@ -175,7 +179,7 @@ function CreateCriminalCar(spawnLocation, heading)
 	--local bool, spawnLocation, heading = GetNthClosestVehicleNodeWithHeading(playerCoords.x, playerCoords.y, playerCoords.z, 200, 9, 3.0, 2.5)
 	--crimeSceneLocation = vector3(spawnLocation.x, spawnLocation.y, spawnLocation.z)
 
-	local vehicles = {"emperor", "schafter", "asea", "asetrope", "cognoscenti", "cog55", "fugitive", "glendale", "ingot", "intruder", "premier", "primo", "regina", "stanier", "stratum", "surge", "warrener", "washington", "baller", "baller2", "cavalcade", "cavalcade2", "dubsta", "fq2", "granger", "gresley", "habanero", "huntley", "landstalker", "mesa", "patriot", "radius", "rocoto", "seminole", "serrano", "felon", "jackal", "oracle", "oracle2", "sultan"}
+	local vehicles = {"emperor", "schafter", "asea", "asetrope", "cognoscenti", "cog55", "fugitive", "glendale", "ingot", "intruder", "premier", "primo", "regina", "stanier", "stratum", "surge", "warrener", "washington", "baller", "baller2", "cavalcade", "cavalcade2", "dubsta", "fq2", "granger", "gresley", "habanero", "huntley", "landstalker", "mesa", "patriot", "radius", "rocoto", "seminole", "serrano", "felon", "jackal", "oracle", "oracle2", "sultan", "buffalo", "buffalo2", "kuruma", "raiden", "v-str", "sugoi", "burrito3", "bison", "minivan", "rumpo", "speedo", "surfer", "youga"}
 	local vehicleHash = vehicles[math.random(#vehicles)]
 
 	if not HasModelLoaded(vehicleHash) then
@@ -184,8 +188,8 @@ function CreateCriminalCar(spawnLocation, heading)
         Wait(200)
 	end
 
-	local vehicles = CreateVehicle(vehicleHash, spawnLocation.x, spawnLocation.y, spawnLocation.z, heading, true, false)
-	return vehicles
+	local vehicle = CreateVehicle(vehicleHash, spawnLocation.x, spawnLocation.y, spawnLocation.z, heading, true, false)
+	return vehicle
 end
 
 function AggroCriminals(type)
