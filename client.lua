@@ -210,7 +210,10 @@ end
 
 function GenerateLocation()
 	local playerCoords = GetEntityCoords(PlayerPedId())
-	local bool, coords, heading = GetNthClosestVehicleNodeWithHeading(playerCoords.x, playerCoords.y, playerCoords.z, 200, 0, 3.0, 2.5)
+	local isValidLocation, coords, heading = GetNthClosestVehicleNodeWithHeading(playerCoords.x, playerCoords.y, playerCoords.z, 200, 0, 3.0, 2.5)
+	while not isValidLocation do
+		isValidLocation, coords, heading = GetNthClosestVehicleNodeWithHeading(playerCoords.x, playerCoords.y, playerCoords.z, 200, 0, 3.0, 2.5)
+	end
 	print(GetNameOfZone(coords))
 	crimeSceneLocation = coords
 	return coords, heading
