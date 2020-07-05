@@ -128,6 +128,7 @@ function CreateCriminal(coords)
     end
 
 	local criminal = CreatePed(23, pedHash, coords.x, coords.y, coords.z, true, false)
+	SetPedRelationshipGroupHash(criminal, GetHashKey("HATES_PLAYER"))
 	SetBlockingOfNonTemporaryEvents(criminal, true)
 	GiveWeaponToPed(criminal, "weapon_pistol", 999, false, true)
 	TaskCombatPed(criminal, PlayerPedId(), 0, 16)
@@ -151,7 +152,12 @@ function CreateCriminalInCar(vehicle, seat)
 	end
 
 	local criminal = CreatePedInsideVehicle(vehicle, 23, pedHash, seat, true, false)
-	SetPedAsEnemy(criminal, true)
+	SetPedRelationshipGroupHash(criminal, GetHashKey("HATES_PLAYER"))
+	SetBlockingOfNonTemporaryEvents(criminal, true)
+	SetPedCombatAttributes(criminal, 1, true)
+	SetPedCombatAttributes(criminal, 2, true)
+	SetPedCombatAttributes(criminal, 3, false)
+	--SetPedAsEnemy(criminal, true)
 	GiveWeaponToPed(criminal, "weapon_pistol", 999, false, true)
 
 	if seat == -1 then
@@ -167,7 +173,7 @@ end
 function CreateCriminalCar(spawnLocation, heading)
 	local playerCoords = GetEntityCoords(PlayerPedId())
 	--local bool, spawnLocation, heading = GetNthClosestVehicleNodeWithHeading(playerCoords.x, playerCoords.y, playerCoords.z, 200, 9, 3.0, 2.5)
-	crimeSceneLocation = vector3(spawnLocation.x, spawnLocation.y, spawnLocation.z)
+	--crimeSceneLocation = vector3(spawnLocation.x, spawnLocation.y, spawnLocation.z)
 
 	local vehicles = {"emperor", "schafter", "asea", "asetrope", "cognoscenti", "cog55", "fugitive", "glendale", "ingot", "intruder", "premier", "primo", "regina", "stanier", "stratum", "surge", "warrener", "washington", "baller", "baller2", "cavalcade", "cavalcade2", "dubsta", "fq2", "granger", "gresley", "habanero", "huntley", "landstalker", "mesa", "patriot", "radius", "rocoto", "seminole", "serrano", "felon", "jackal", "oracle", "oracle2", "sultan"}
 	local vehicleHash = vehicles[math.random(#vehicles)]
@@ -182,19 +188,27 @@ function CreateCriminalCar(spawnLocation, heading)
 	return vehicles
 end
 
-function AggroCriminals()
-	for _,v in pairs(criminals) do
-		if GetPedInVehicleSeat(GetVehiclePedIsIn(v), -1) == v then
-			TaskVehicleMissionPedTarget(v, GetVehiclePedIsIn(v), PlayerPedId(), 8, 999.0, 524845, 600)
-		else
-			TaskVehicleShootAtPed(v, PlayerPedId())
+function AggroCriminals(type)
+	if type == 1 then
+		for _,v in pairs(criminals) do
+			if GetPedInVehicleSeat(GetVehiclePedIsIn(v), -1) == v then
+				TaskVehicleMissionPedTarget(v, GetVehiclePedIsIn(v), PlayerPedId(), 8, 999.0, 524845, 600)
+			else
+				TaskVehicleShootAtPed(v, PlayerPedId())
+			end
 		end
+	elseif type == 2 then
+
+	elseif type == 3 then
+		TaskCombatPed(criminals[1], PlayerPedId(), 0, 16)
 	end
 end
 
 function GenerateLocation()
 	local playerCoords = GetEntityCoords(PlayerPedId())
-	local bool, coords, heading = GetNthClosestVehicleNodeWithHeading(playerCoords.x, playerCoords.y, playerCoords.z, 200, 9, 3.0, 2.5)
+	local bool, coords, heading = GetNthClosestVehicleNodeWithHeading(playerCoords.x, playerCoords.y, playerCoords.z, 200, 0, 3.0, 2.5)
+	print(GetNameOfZone(coords))
+	crimeSceneLocation = coords
 	return coords, heading
 end
 
@@ -232,6 +246,18 @@ function IsPlayerNearCrimeScene()
 	end
 end
 
+function IsGeneratedLocationCountryside(location)
+	local result = false
+	local countrysideZones = {"TONGVAH", "TONGVAV", "WINDF", "RTRAK", "SANCHIA", "MTCHIL", "LACT", "HUMLAB", "MTGORDO", "MTJOSE"}
+	for _,v in pairs(countrysideZones) do
+		if GetNameOfZone(location) == v then
+			result = true
+			break
+		end
+	end
+	return result
+end
+
 function MissionOverSuccess()
 	DrawMissionCompleteText("Crime scene cleaned up.")
 	SetMaxWantedLevel(5)
@@ -263,6 +289,7 @@ function StartMission()
 		local isAtCrimeScene = false
 		--local location = GenerateLocation()
 		StartMissionStolenCar()
+		--StartMissionSuspectOnFoot()
 		SetTargetRoute()
 		SetMaxWantedLevel(0)
 		SetVehicleSiren(GetVehiclePedIsIn(PlayerPedId(), false), true)
@@ -279,7 +306,7 @@ function StartMission()
 				timer = 0
 				DrawArrivedAtCrimeSceneText()
 				ClearAllBlipRoutes()
-				AggroCriminals()
+				AggroCriminals(1)
 				isAtCrimeScene = true
 			end
 
@@ -312,6 +339,7 @@ function StartMissionStolenCar()
 	for i = 1, random, 1 do 
 		criminals[i] = CreateCriminalInCar(vehicle, i-2)
 	end
+	CheckRelationship()
 end
 
 function StartMissionGangActivity()
@@ -326,7 +354,14 @@ function StartMissionGangActivity()
 end
 
 function StartMissionSuspectOnFoot()
-
+	local test = GenerateLocation()
+	print(test)
+	local isValidLocation, location = GetPointOnRoadSide(test.x, test.y, test.z)
+	while not isValidLocation and not IsGeneratedLocationCountryside(location) do
+		Citizen.Wait(1)
+		isValidLocation, location = GetPointOnRoadSide(location.x, location.y, location.z)
+	end
+	criminals[1] = CreateCriminal(location)
 end
 
 function StartTimer()
@@ -373,4 +408,11 @@ end
 
 function PlayPoliceRadio()
 	PlayPoliceReport("SCRIPTED_SCANNER_REPORT_CAR_STEAL_2_01", 0.0)
+end
+
+function CheckRelationship()
+	if #criminals > 1 then
+		print(GetPedRelationshipGroupHash(criminals[1]))
+		print(GetPedRelationshipGroupHash(criminals[2]))
+	end
 end
