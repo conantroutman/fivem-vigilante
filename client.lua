@@ -6,6 +6,7 @@ local criminals = {}
 local target
 
 Citizen.CreateThread(function()
+	print(Vmag2(GetEntityForwardVector(PlayerPedId())))
 	while true do
 		Citizen.Wait(1)
 
@@ -92,30 +93,6 @@ function DrawArrivedAtCrimeSceneText()
 	BeginTextCommandPrint("STRING")
 	AddTextComponentString("You are at the crime scene. Take out any ~r~criminals~r~ ~s~in this precinct.~s~")
 	EndTextCommandPrint(7000, true)
-end
-
-function SpawnCriminal(location)
-	local isRoadSide, criminalCoords = GetPointOnRoadSide(location.x, location.y, location.z)
-	local pedHash = "g_m_y_lost_01"
-	
-	if not HasModelLoaded( pedHash ) then
-        RequestModel( pedHash )
-        --Wait 200ms to load the model into memory
-        Wait(200)
-    end
-
-	local criminal = CreatePed(23, pedHash, criminalCoords.x, criminalCoords.y, criminalCoords.z, true, false)
-	SetBlockingOfNonTemporaryEvents(criminal, true)
-	GiveWeaponToPed(criminal, "weapon_microsmg", 999, false, true)
-	TaskCombatPed(criminal, PlayerPedId(), 0, 16)
-	TaskWanderStandard(criminal, 10.0, 10)
-	local blip = AddBlipForEntity(criminal)
-	SetBlipAsFriendly(blip, false)
-
-	SetBlipRoute(blip, true)
-	SetBlipRouteColour(blip, 1)
-
-	return criminal
 end
 
 function CreateCriminal(coords)
@@ -302,7 +279,7 @@ function StartMission()
 		SetVehicleSiren(GetVehiclePedIsIn(PlayerPedId(), false), true)
 		DisplayShardMessage()
 		DrawMissionStartText(crimeSceneLocation)
-		timer = 60
+		timer = SetTimer()
 		StartTimer()
 		CreateTimerBars()
 
@@ -346,7 +323,6 @@ function StartMissionStolenCar()
 	for i = 1, random, 1 do 
 		criminals[i] = CreateCriminalInCar(vehicle, i-2)
 	end
-	CheckRelationship()
 end
 
 function StartMissionGangActivity()
@@ -417,9 +393,11 @@ function PlayPoliceRadio()
 	PlayPoliceReport("SCRIPTED_SCANNER_REPORT_CAR_STEAL_2_01", 0.0)
 end
 
-function CheckRelationship()
-	if #criminals > 1 then
-		print(GetPedRelationshipGroupHash(criminals[1]))
-		print(GetPedRelationshipGroupHash(criminals[2]))
-	end
+-- Calculate the mission timer based on distance to crime scene and vehicle speed
+function SetTimer()
+	local distance = CalculateTravelDistanceBetweenPoints(GetEntityCoords(PlayerPedId()), crimeSceneLocation)
+	local topSpeed = GetVehicleMaxSpeed(GetVehiclePedIsIn(PlayerPedId()))
+	print(distance)
+	print(topSpeed)
+	return math.floor(distance/topSpeed * 5)
 end
