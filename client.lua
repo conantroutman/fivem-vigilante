@@ -327,7 +327,7 @@ function StartTimer()
 			Citizen.Wait(1000)
 			timer = timer - 1
 			--print(timer)
-			if timer < 5 and timer > 0 then
+			if timer <= 5 and timer > 0 then
 				PlaySoundFrontend(-1, "MP_5_SECOND_TIMER", "HUD_FRONTEND_DEFAULT_SOUNDSET", 1)
 			elseif timer == 0 then
 				PlaySoundFrontend(-1, "TIMER_STOP", "HUD_MINI_GAME_SOUNDSET", 1)
