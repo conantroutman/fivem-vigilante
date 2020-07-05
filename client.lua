@@ -164,9 +164,9 @@ function CreateCriminalInCar(vehicle, seat)
 	return criminal
 end
 
-function CreateCriminalCar(location)
+function CreateCriminalCar(spawnLocation, heading)
 	local playerCoords = GetEntityCoords(PlayerPedId())
-	local bool, spawnLocation, heading = GetNthClosestVehicleNodeWithHeading(playerCoords.x, playerCoords.y, playerCoords.z, 200, 9, 3.0, 2.5)
+	--local bool, spawnLocation, heading = GetNthClosestVehicleNodeWithHeading(playerCoords.x, playerCoords.y, playerCoords.z, 200, 9, 3.0, 2.5)
 	crimeSceneLocation = vector3(spawnLocation.x, spawnLocation.y, spawnLocation.z)
 
 	local vehicles = {"emperor", "schafter", "asea", "asetrope", "cognoscenti", "cog55", "fugitive", "glendale", "ingot", "intruder", "premier", "primo", "regina", "stanier", "stratum", "surge", "warrener", "washington", "baller", "baller2", "cavalcade", "cavalcade2", "dubsta", "fq2", "granger", "gresley", "habanero", "huntley", "landstalker", "mesa", "patriot", "radius", "rocoto", "seminole", "serrano", "felon", "jackal", "oracle", "oracle2", "sultan"}
@@ -194,10 +194,11 @@ end
 
 function GenerateLocation()
 	local playerCoords = GetEntityCoords(PlayerPedId())
-	local isVehicleNode, randomNode = GetNthClosestVehicleNode(playerCoords.x, playerCoords.y, playerCoords.z, 600)
-	return randomNode
+	local bool, coords, heading = GetNthClosestVehicleNodeWithHeading(playerCoords.x, playerCoords.y, playerCoords.z, 200, 9, 3.0, 2.5)
+	return coords, heading
 end
 
+-- Checks if all spawned criminal NPCs are dead
 function IsCriminalsDead()
 	local totalHealth = 0
 	for _,v in pairs(criminals) do
@@ -304,7 +305,7 @@ function StartMission()
 end
 
 function StartMissionStolenCar()
-	local vehicle = CreateCriminalCar()
+	local vehicle = CreateCriminalCar(GenerateLocation())
 	target = vehicle
 	-- Create random number of criminals
 	local random = math.random(4)
@@ -314,7 +315,14 @@ function StartMissionStolenCar()
 end
 
 function StartMissionGangActivity()
-
+	local gangs = {
+		{
+			gang = 1,
+			x = 0,
+			y = 0,
+			z = 0
+		}
+	}
 end
 
 function StartMissionSuspectOnFoot()
