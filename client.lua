@@ -138,7 +138,7 @@ function CreateCriminalInCar(vehicle, seat)
 	GiveWeaponToPed(criminal, "weapon_microsmg", 999, false, true)
 
 	if seat == -1 then
-		TaskVehicleDriveWander(criminal, vehicle, 60.0, 786603)
+		TaskVehicleDriveWander(criminal, vehicle, 15.0, 537657515)
 	end
 
 	local blip = AddBlipForEntity(criminal)
@@ -178,7 +178,7 @@ function AggroCriminals()
 	if missionType == 1 then
 		for _,v in pairs(criminals) do
 			if GetPedInVehicleSeat(GetVehiclePedIsIn(v), -1) == v then
-				TaskVehicleMissionPedTarget(v, GetVehiclePedIsIn(v), PlayerPedId(), 8, 999.0, 524845, 600)
+				TaskVehicleMissionPedTarget(v, GetVehiclePedIsIn(v), PlayerPedId(), 8, 999.0, 786988, 600)
 			else
 				TaskVehicleShootAtPed(v, PlayerPedId())
 			end
@@ -270,6 +270,7 @@ function MissionOverFail()
 	isOnMission = false
 end
 
+-- Set GPS route to crime scene
 function SetTargetRoute()
 	local blip = GetBlipFromEntity(criminals[1])
 	SetBlipRoute(blip, true)
