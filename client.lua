@@ -4,9 +4,9 @@ local timer = 0
 local crimeSceneLocation
 local criminals = {}
 local target
+local missionType = 1
 
 Citizen.CreateThread(function()
-	print(Vmag2(GetEntityForwardVector(PlayerPedId())))
 	while true do
 		Citizen.Wait(1)
 
@@ -107,7 +107,7 @@ function CreateCriminal(coords)
 	local criminal = CreatePed(23, pedHash, coords.x, coords.y, coords.z, true, false)
 	SetPedRelationshipGroupHash(criminal, GetHashKey("HATES_PLAYER"))
 	SetBlockingOfNonTemporaryEvents(criminal, true)
-	GiveWeaponToPed(criminal, "weapon_microsmg", 999, false, true)
+	GiveWeaponToPed(criminal, "weapon_pistol", 999, false, true)
 	TaskCombatPed(criminal, PlayerPedId(), 0, 16)
 	TaskWanderStandard(criminal, 10.0, 10)
 	local blip = AddBlipForEntity(criminal)
@@ -166,11 +166,12 @@ function CreateCriminalCar(spawnLocation, heading)
 	end
 
 	local vehicle = CreateVehicle(vehicleHash, spawnLocation.x, spawnLocation.y, spawnLocation.z, heading, true, false)
+	print("Stolen vehicle: " .. GetDisplayNameFromVehicleModel(GetHashKey(vehicleHash)))
 	return vehicle
 end
 
-function AggroCriminals(type)
-	if type == 1 then
+function AggroCriminals()
+	if missionType == 1 then
 		for _,v in pairs(criminals) do
 			if GetPedInVehicleSeat(GetVehiclePedIsIn(v), -1) == v then
 				TaskVehicleMissionPedTarget(v, GetVehiclePedIsIn(v), PlayerPedId(), 8, 999.0, 524845, 600)
@@ -178,9 +179,9 @@ function AggroCriminals(type)
 				TaskVehicleShootAtPed(v, PlayerPedId())
 			end
 		end
-	elseif type == 2 then
+	elseif missionType == 2 then
 
-	elseif type == 3 then
+	elseif missionType == 3 then
 		TaskCombatPed(criminals[1], PlayerPedId(), 0, 16)
 	end
 end
@@ -191,7 +192,7 @@ function GenerateLocation()
 	while not isValidLocation do
 		isValidLocation, coords, heading = GetNthClosestVehicleNodeWithHeading(playerCoords.x, playerCoords.y, playerCoords.z, 200, 0, 3.0, 2.5)
 	end
-	print(GetNameOfZone(coords))
+	--print(GetNameOfZone(coords))
 	crimeSceneLocation = coords
 	return coords, heading
 end
@@ -207,6 +208,7 @@ function IsCriminalsDead()
 	end
 
 	if totalHealth == 0 then
+		print("All criminals dead")
 		return true
 	else
 		return false
@@ -272,8 +274,7 @@ function StartMission()
 	Citizen.CreateThread(function()
 		local isAtCrimeScene = false
 		--local location = GenerateLocation()
-		StartMissionStolenCar()
-		--StartMissionSuspectOnFoot()
+		StartRandomMission()
 		SetTargetRoute()
 		SetMaxWantedLevel(0)
 		SetVehicleSiren(GetVehiclePedIsIn(PlayerPedId(), false), true)
@@ -290,7 +291,7 @@ function StartMission()
 				timer = 0
 				DrawArrivedAtCrimeSceneText()
 				ClearAllBlipRoutes()
-				AggroCriminals(1)
+				AggroCriminals()
 				isAtCrimeScene = true
 			end
 
@@ -316,6 +317,7 @@ function StartMission()
 end
 
 function StartMissionStolenCar()
+	missionType = 1
 	local vehicle = CreateCriminalCar(GenerateLocation())
 	target = vehicle
 	-- Create random number of criminals
@@ -337,14 +339,31 @@ function StartMissionGangActivity()
 end
 
 function StartMissionSuspectOnFoot()
-	local test = GenerateLocation()
-	print(test)
-	local isValidLocation, location = GetPointOnRoadSide(test.x, test.y, test.z)
-	while not isValidLocation and not IsGeneratedLocationCountryside(location) do
-		Citizen.Wait(1)
-		isValidLocation, location = GetPointOnRoadSide(location.x, location.y, location.z)
+	print("Suspect on foot")
+	missionType = 3
+	GenerateLocation()
+	local bool, location = GetSafeCoordForPed(crimeSceneLocation.x, crimeSceneLocation.y, crimeSceneLocation.z, true, 16)
+	if not bool then
+		StartRandomMission()
+		return
 	end
+	--print(coords)
+	--local isValidLocation, location = GetPointOnRoadSide(crimeSceneLocation.x, crimeSceneLocation.y, crimeSceneLocation.z)
+	--while not bool do
+	--	Citizen.Wait(1)
+	--	print("Not valid location")
+	--	bool, location = GetSafeCoordForPed(crimeSceneLocation.x, crimeSceneLocation.y, crimeSceneLocation.z, true, 16)
+	--end
 	criminals[1] = CreateCriminal(location)
+end
+
+function StartRandomMission()
+	local random = math.random(2)
+	if random == 1 then
+		StartMissionStolenCar()
+	elseif random == 2 then
+		StartMissionSuspectOnFoot()
+	end
 end
 
 function StartTimer()
@@ -362,6 +381,7 @@ function StartTimer()
 	end)
 end
 
+-- Create UI element for mission timer
 function CreateTimerBars()
 	local _timerBarPool = NativeUI.TimerBarPool()
 
@@ -383,6 +403,7 @@ function CreateTimerBars()
 	end)
 end
 
+-- Convert timer to MM:SS format
 function FormatTime()
 	local minutes = math.floor(math.fmod(timer,3600)/60)
 	local seconds = math.floor(math.fmod(timer,60))
@@ -397,7 +418,7 @@ end
 function SetTimer()
 	local distance = CalculateTravelDistanceBetweenPoints(GetEntityCoords(PlayerPedId()), crimeSceneLocation)
 	local topSpeed = GetVehicleMaxSpeed(GetVehiclePedIsIn(PlayerPedId()))
-	print(distance)
-	print(topSpeed)
+	--print(distance)
+	--print(topSpeed)
 	return math.floor(distance/topSpeed * 5)
 end
