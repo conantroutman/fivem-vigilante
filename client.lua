@@ -249,6 +249,7 @@ function IsGeneratedLocationCountryside(location)
 end
 
 function MissionOverSuccess()
+	SetVehicleSiren(GetVehiclePedIsIn(PlayerPedId(), false), false)
 	DrawMissionCompleteText("Crime scene cleaned up.")
 	SetMaxWantedLevel(5)
 	criminals = {}
@@ -256,6 +257,7 @@ function MissionOverSuccess()
 end
 
 function MissionOverFail()
+	SetVehicleSiren(GetVehiclePedIsIn(PlayerPedId(), false), false)
 	if #criminals > 1 then
 		DrawMissionCompleteText("The ~r~criminals~r~ ~s~got away.~s~")
 	else
