@@ -158,6 +158,10 @@ function CreateCriminalCar(spawnLocation, heading)
 
 	local vehicles = {"emperor", "schafter", "asea", "asetrope", "cognoscenti", "cog55", "fugitive", "glendale", "ingot", "intruder", "premier", "primo", "regina", "stanier", "stratum", "surge", "warrener", "washington", "baller", "baller2", "cavalcade", "cavalcade2", "dubsta", "fq2", "granger", "gresley", "habanero", "huntley", "landstalker", "mesa", "patriot", "radius", "rocoto", "seminole", "serrano", "felon", "jackal", "oracle", "oracle2", "sultan", "buffalo", "buffalo2", "kuruma", "raiden", "v-str", "sugoi", "burrito3", "bison", "minivan", "rumpo", "speedo", "surfer", "youga"}
 	local vehicleHash = vehicles[math.random(#vehicles)]
+	while GetDisplayNameFromVehicleModel(GetHashKey(vehicleHash)) == "CARNOTFOUND" do
+		print(vehicleHash .. " is an invalid vehicle model")
+		vehicleHash = vehicles[math.random(#vehicles)]
+	end
 
 	if not HasModelLoaded(vehicleHash) then
         RequestModel(vehicleHash)
