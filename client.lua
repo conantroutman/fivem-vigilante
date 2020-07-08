@@ -5,8 +5,10 @@ local crimeSceneLocation
 local criminals = {}
 local target
 local missionType = 1
+local level = 0
 
 Citizen.CreateThread(function()
+	local showHelpMessage = true
 	while true do
 		Citizen.Wait(1)
 
@@ -18,23 +20,27 @@ Citizen.CreateThread(function()
 				-- Disable headlight and horn controls (E and right d-pad)
 				DisableControlAction(8, 74, true)
 				DisableControlAction(0, 86, true)
-				if GetPlayerWantedLevel(PlayerId()) == 0 then
+				if GetPlayerWantedLevel(PlayerId()) == 0 and showHelpMessage then
 					SetTextComponentFormat("STRING")
 					AddTextComponentString("Press ~INPUT_CONTEXT~ when stopped to start vigilante missions.")
 					DisplayHelpTextFromStringLabel(0, 0, 1, -1)
-				else
+					showHelpMessage = false
+				elseif showHelpMessage then
 					SetTextComponentFormat("STRING")
 					AddTextComponentString("Clear your wanted level to start vigilante missions.")
 					DisplayHelpTextFromStringLabel(0, 0, 1, -1)
+					showHelpMessage = false
 				end
 
 				if IsControlJustReleased(13, 51) and GetPlayerWantedLevel(PlayerId()) == 0 and not isOnMission then
-					isOnMission = true
+					DisplayShardMessage()
 					StartMission()
 				end
 			else
 				SetHornEnabled(veh, true)
 			end
+		elseif not showHelpMessage then
+			showHelpMessage = true
 		end
 	end
 end)
@@ -110,11 +116,25 @@ function CreateCriminal(coords)
 	GiveWeaponToPed(criminal, "weapon_pistol", 999, false, true)
 	TaskCombatPed(criminal, PlayerPedId(), 0, 16)
 	TaskWanderStandard(criminal, 10.0, 10)
-	local blip = AddBlipForEntity(criminal)
-	SetBlipAsFriendly(blip, false)
 
-	SetBlipRoute(blip, true)
-	SetBlipRouteColour(blip, 1)
+	return criminal
+end
+
+function CreateCriminalInGang(coords)
+	local pedHash = GenerateGangPed(coords)
+	
+	if not HasModelLoaded( pedHash ) then
+        RequestModel( pedHash )
+        --Wait 200ms to load the model into memory
+        Wait(200)
+    end
+
+	local criminal = CreatePed(23, pedHash, coords.x, coords.y, coords.z, true, false)
+	SetPedRelationshipGroupHash(criminal, GetHashKey("HATES_PLAYER"))
+	SetBlockingOfNonTemporaryEvents(criminal, true)
+	GiveWeaponToPed(criminal, "weapon_assaultrifle", 999, false, true)
+	TaskCombatPed(criminal, PlayerPedId(), 0, 16)
+	TaskWanderStandard(criminal, 10.0, 10)
 
 	return criminal
 end
@@ -178,13 +198,16 @@ function AggroCriminals()
 	if missionType == 1 then
 		for _,v in pairs(criminals) do
 			if GetPedInVehicleSeat(GetVehiclePedIsIn(v), -1) == v then
-				TaskVehicleMissionPedTarget(v, GetVehiclePedIsIn(v), PlayerPedId(), 8, 999.0, 786988, 600)
+				TaskVehicleMissionPedTarget(v, GetVehiclePedIsIn(v), PlayerPedId(), 8, 999.0, 786988, 600, 30.0, true)
 			else
 				TaskVehicleShootAtPed(v, PlayerPedId())
 			end
 		end
 	elseif missionType == 2 then
-
+		for _,v in pairs(criminals) do
+			TaskCombatPed(v, PlayerPedId(), 0, 16)
+		end
+		
 	elseif missionType == 3 then
 		TaskCombatPed(criminals[1], PlayerPedId(), 0, 16)
 	end
@@ -199,6 +222,37 @@ function GenerateLocation()
 	--print(GetNameOfZone(coords))
 	crimeSceneLocation = coords
 	return coords, heading
+end
+
+function GenerateGangLocation()
+	local gangLocations = {
+		vector3(-71.18504, -1338.646, 28.27702),
+		vector3(-191.7131, -1381.911, 30.22589),
+		vector3(68.01376, 24.28207, 68.52757),
+		vector3(-28.02275, -83.45049, 56.25368),
+		vector3(-0.02338028, -208.5403, 51.742),
+		vector3(80.67959, -410.7631, 36.55301),
+		vector3(241.346, -769.5652, 29.75478),
+		vector3(124.3746, -1059.164, 28.19236),
+		vector3(192.4879, -1214.213, 28.29508),
+		vector3(145.9729, -1308.014, 28.2023),
+		vector3(87.03284, -1442.438, 28.29387),
+		vector3(202.2033, -1458.935, 28.1375),
+		vector3(-49.46889, -1685.831, 28.4917),
+		vector3(174.4979, -2081.674, 16.62594),
+		vector3(373.9221, -2134.981, 15.27624),
+		vector3(504.3978, -2155.506, 4.917534),
+		vector3(551.0375, -1927.234, 23.80581),
+		vector3(488.8933, -1892.771, 24.66933),
+		vector3(384.1003, -1823.55, 28.02104),
+		vector3(466.7781, -1692.246, 28.28291)
+	}
+	local random = math.random(#gangLocations)
+	local coords = gangLocations[random]
+	local bool, closestRoad = GetClosestMajorVehicleNode(coords, 3.0, 0)
+	crimeSceneLocation = closestRoad
+	print(coords)
+	return coords
 end
 
 -- Checks if all spawned criminal NPCs are dead
@@ -216,6 +270,14 @@ function IsCriminalsDead()
 		return true
 	else
 		return false
+	end
+end
+
+function CreateCriminalBlips()
+	local blip
+	for _,v in pairs(criminals) do
+		blip = AddBlipForEntity(v)
+		SetBlipAsFriendly(blip, false)
 	end
 end
 
@@ -254,6 +316,7 @@ function MissionOverSuccess()
 	SetMaxWantedLevel(5)
 	criminals = {}
 	isOnMission = false
+	StartMission()
 end
 
 function MissionOverFail()
@@ -267,6 +330,7 @@ function MissionOverFail()
 	ClearAllBlipRoutes()
 	ClearCriminalBlips()
 	criminals = {}
+	level = 0
 	isOnMission = false
 end
 
@@ -279,13 +343,14 @@ end
 
 function StartMission()
 	Citizen.CreateThread(function()
+		isOnMission = true
 		local isAtCrimeScene = false
+		level = level+1
 		--local location = GenerateLocation()
 		StartRandomMission()
 		SetTargetRoute()
 		SetMaxWantedLevel(0)
 		SetVehicleSiren(GetVehiclePedIsIn(PlayerPedId(), false), true)
-		DisplayShardMessage()
 		DrawMissionStartText(crimeSceneLocation)
 		timer = SetTimer()
 		StartTimer()
@@ -335,14 +400,13 @@ function StartMissionStolenCar()
 end
 
 function StartMissionGangActivity()
-	local gangs = {
-		{
-			gang = 1,
-			x = 0,
-			y = 0,
-			z = 0
-		}
-	}
+	missionType = 2
+	local location = GenerateGangLocation()
+	local random = math.random(4)
+	for i = 1, random, 1 do 
+		criminals[i] = CreateCriminalInGang(location)
+	end
+	CreateCriminalBlips()
 end
 
 function StartMissionSuspectOnFoot()
@@ -365,10 +429,13 @@ function StartMissionSuspectOnFoot()
 end
 
 function StartRandomMission()
-	local random = math.random(2)
+	local random = math.random(3)
+	--local random = 2
 	if random == 1 then
 		StartMissionStolenCar()
 	elseif random == 2 then
+		StartMissionGangActivity()
+	elseif random == 3 then
 		StartMissionSuspectOnFoot()
 	end
 end
@@ -390,22 +457,36 @@ end
 
 -- Create UI element for mission timer
 function CreateTimerBars()
+	local showTimerBar = true
 	local _timerBarPool = NativeUI.TimerBarPool()
 
 	local timerItem = NativeUI.CreateTimerBar("TIME LEFT")
 	timerItem:SetTextColor(255, 255, 255, 255)
 	--Item:SetTextTimerBarColor(0, 255, 255, 255) --You can define a text color
+	local levelItem = NativeUI.CreateTimerBar("LEVEL")
+	levelItem:SetTextColor(255, 255, 255, 255)
+	levelItem:SetTextTimerBar(level)
+	_timerBarPool:Add(levelItem)
 	_timerBarPool:Add(timerItem)
 
 	Citizen.CreateThread(function()
-		while isOnMission and timer > 0 do
+		while isOnMission do
 			Citizen.Wait(1)
-			if timer <= 5 then
+
+			if timer <= 5 and showTimerBar then
 				timerItem:SetTextColor(255, 0, 0, 255)
 				timerItem:SetTextTimerBarColor(255, 0, 0, 255)
 			end
 			timerItem:SetTextTimerBar(FormatTime())
 			_timerBarPool:Draw()
+
+			if timer <= 0 and showTimerBar then
+				print("Hide timer")
+				timerItem:SetTextColor(255, 0, 0, 0)
+				timerItem:SetTextTimerBarColor(255, 0, 0, 0)
+				--_timerBarPool:Remove(timerItem)
+				showTimerBar = false
+			end
 		end
 	end)
 end
@@ -428,4 +509,43 @@ function SetTimer()
 	--print(distance)
 	--print(topSpeed)
 	return math.floor(distance/topSpeed * 5)
+end
+
+function GenerateGangPed(coords)
+	local ballas = {"g_m_y_ballaeast_01", "g_m_y_ballaorig_01", "g_m_y_ballasout_01"}
+	local families = {"g_m_y_famca_01", "g_m_y_famdnf_01", "g_m_y_famfor_01"}
+	local vagos = {"g_m_y_mexgoon_01", "g_m_y_mexgoon_02", "g_m_y_mexgoon_03"}
+	local aztecas = {"g_m_y_azteca_01"}
+	local marabunta = {"g_m_y_salvagoon_01", "g_m_y_salvagoon_02", "g_m_y_salvagoon_03"}
+	local lost = {"g_m_y_lost_01", "g_m_y_lost_02", "g_m_y_lost_03"}
+	local korean = {"g_m_y_korean_01", "g_m_y_korean_02", "g_m_y_korlieut_01"}
+	local armenian = {"g_m_m_armgoon_01", "g_m_y_armgoon_02", "g_m_m_armlieut_01"}
+	local triads = {"g_m_m_chigoon_01", "g_m_m_chigoon_02"}
+	local cartel = {"g_m_y_pologoon_01", "g_m_y_pologoon_02", "g_m_y_mexgang_01"}
+
+	local territory = GetNameOfZone(coords)
+	print(territory)
+	if territory == "CHAMH" or territory == "STRAW" then
+		return families[math.random(#families)]
+	elseif territory == "DAVIS" or territory == "PALFOR" then
+		return ballas[math.random(#ballas)]
+	elseif territory == "RANCHO" or territory == "CYPRE" or territory == "CHU" then
+		return vagos[math.random(#vagos)]
+	elseif territory == "ALAMO" or territory == "ZANCUDO" then
+		return aztecas[math.random(#aztecas)]
+	elseif territory == "EBURO" or territory == "BEACH" or territory == "VCANA" or territory == "VESP" then
+		return marabunta[math.random(#marabunta)]
+	elseif territory == "GRAPES" or territory == "DESRT" or territory == "SLAB" or territory == "NCHU" or territory == "EAST_V" then
+		return lost[math.random(#lost)]
+	elseif territory == "KOREAT" or territory == "DELPE" then
+		return korean[math.random(#korean)]
+	elseif territory == "DELSOL" or territory == "LOSPUER" then
+		return armenian[math.random(#armenian)]
+	elseif territory == "WVINE" then
+		return triads[math.random(#triads)]
+	elseif territory == "BURTON" or territory == "CHIL" then
+		return cartel[math.random(#cartel)]
+	else
+		return armenian[math.random(#armenian)]
+	end
 end
